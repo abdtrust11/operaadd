@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+    <record model="ir.ui.view" id="multi_product_wizard_form">
+      <field name="name">multi.product.wizard.form</field>
+      <field name="model">multi.product.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Select Products">
+            <field name="product_ids" domain="[('purchase_ok','=', True)]">
+                <tree>
+                    <field name="default_code"/>
+                    <field name="name"/>
+                    <field name="lst_price"/>
+                </tree>
+            </field>
+          <footer>
+              <button string="Apply" name="add_products"  type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel" />
+          </footer>
+          
+        </form>
+      </field>
+    </record>
+    <record id="action_multi_product_wizard" model="ir.actions.act_window">
+        <field name="name">Multi Products</field>
+        <field name="res_model">multi.product.wizard</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+  </data>
+</odoo>
