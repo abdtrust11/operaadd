@@ -17,7 +17,6 @@
     'data': [
         'security/ir.model.access.csv',
         'wizard/report_wizard.xml',
-        'wizard/synthesis_report.xml',
     ],
 
 

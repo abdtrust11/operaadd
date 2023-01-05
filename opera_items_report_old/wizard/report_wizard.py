@@ -150,7 +150,6 @@ class ItemsReportWizard(models.TransientModel):
                         'year_id': lot.product_id.year_id.year,
                         'country_id': lot.product_id.country_id.manufacture,
                         'pro_name': lot.product_id.name,
-                        'pro_cost': lot.product_id.standard_price,
                         'avalible_qty': lot.product_qty,
                         'income_qty': income_qty,
                         'income_amt': income_amt,
@@ -173,6 +172,7 @@ class ItemsReportWizard(models.TransientModel):
 
         if not self.stock_ids:
             for pro in products:
+
                 pos_lines = self.env['pos.order.line'].sudo().search([
                     ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
                     ('product_id', '=', pro.id),
@@ -238,7 +238,6 @@ class ItemsReportWizard(models.TransientModel):
                         'year_id': pro.year_id.year,
                         'country_id': pro.country_id.manufacture,
                         'pro_name': pro.name,
-                        'pro_cost':pro.standard_price,
                         'avalible_qty': pro.qty_available,
                         'income_qty': income_qty,
                         'income_amt': income_amt,
@@ -330,7 +329,6 @@ class ItemsReportWizard(models.TransientModel):
                             'year_id': pro.year_id.year,
                             'country_id': pro.country_id.manufacture,
                             'pro_name': pro.name,
-                            'pro_cost':pro.standard_price,
                             'avalible_qty': avalible_qty,
                             'income_qty': income_qty,
                             'stock': stock.name,
@@ -463,8 +461,6 @@ class ItemsReportWizard(models.TransientModel):
         col += 1
         worksheet.write(row, col, _("صافي الوارد"), TABLE_HEADER_payslib)
         col += 1
-        worksheet.write(row, col, _("مبلغ الوارد"), TABLE_HEADER_payslib)
-        col += 1
         worksheet.write(row, col, _("الكمية المباعة"), TABLE_HEADER_payslib)
         col += 1
         worksheet.write(row, col, _("مبلغ المبيعات"), TABLE_HEADER_payslib)
@@ -506,8 +502,6 @@ class ItemsReportWizard(models.TransientModel):
             worksheet.write(row, col, line['avalible_qty'], TABLE_HEADER_batch)
             col += 1
             worksheet.write(row, col, line['income_qty'], TABLE_HEADER_batch)
-            col += 1
-            worksheet.write(row, col, line['pro_cost'] * line['income_qty'], TABLE_HEADER_batch)
             col += 1
             worksheet.write(row, col, line['sales_qty'], TABLE_HEADER_batch)
             col += 1
