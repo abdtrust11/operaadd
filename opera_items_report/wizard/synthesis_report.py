@@ -689,7 +689,7 @@ class synthesisreportWizard(models.TransientModel):
             col += 1
             worksheet.write(row, col, line['income_qty'], TABLE_HEADER_batch)
             col += 1
-            worksheet.write(row, col, line['pro_cost'] * line['income_qty'], TABLE_HEADER_batch)
+            worksheet.write(row, col, line['income_amt'], TABLE_HEADER_batch)
             col += 1
             worksheet.write(row, col, line['sales_qty'], TABLE_HEADER_batch)
             col += 1
