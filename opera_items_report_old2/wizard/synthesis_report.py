@@ -37,8 +37,8 @@ class synthesisreportWizard(models.TransientModel):
         products = product_obj.sudo().search(domain)
         if self.template_id:
             products = self.env['product.template']
-            for rec in self.template_id:
-                products += rec
+            # for rec in self.template_id:
+            products += self.template_id
             lots = self.env['stock.production.lot'].sudo().search([('product_id','in',products.ids)])
         return {'domain': {'product_id': [('id', '=', products.ids)],'lot_ids': [('id', '=', lots.ids)]}}
 
@@ -63,8 +63,8 @@ class synthesisreportWizard(models.TransientModel):
         #     products = self.product_id
         if self.template_id:
             products = self.env['product.template']
-            for rec in self.template_id:
-                products += rec
+            # for rec in self.template_id:
+            products += self.template_id
         stock_ids = self.env['stock.warehouse'].search([])
         if self.stock_ids:
             stock_ids = self.stock_ids
@@ -172,9 +172,8 @@ class synthesisreportWizard(models.TransientModel):
 
 
         if not self.stock_ids:
-            for prod in products:
-                if prod.product_variant_ids:
-                # for rec in self.template_id:
+            if self.template_id:
+                for rec in self.template_id:
                     # products += rec.product_variant_ids
                     total_qty_in = 0.0
                     total_qty_out = 0.0
@@ -182,7 +181,7 @@ class synthesisreportWizard(models.TransientModel):
                     total_amt_out = 0.0
                     income_qty = 0.0
                     income_amt = 0.0
-                    for pro in prod.product_variant_ids:
+                    for pro in rec.product_variant_ids:
 
                         pos_lines = self.env['pos.order.line'].sudo().search([
                             ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
@@ -240,13 +239,13 @@ class synthesisreportWizard(models.TransientModel):
 
                     data.append(
                         {
-                            'pro_code': prod.barcode,
-                            'season_id': prod.season_id.season,
-                            'year_id': prod.year_id.year,
-                            'country_id': prod.country_id.manufacture,
-                            'pro_name': prod.name,
-                            'pro_cost':prod.standard_price,
-                            'avalible_qty': prod.qty_available,
+                            'pro_code': rec.barcode,
+                            'season_id': rec.season_id.season,
+                            'year_id': rec.year_id.year,
+                            'country_id': rec.country_id.manufacture,
+                            'pro_name': rec.name,
+                            'pro_cost':rec.standard_price,
+                            'avalible_qty': rec.qty_available,
                             'income_qty': income_qty,
                             'income_amt': income_amt,
                             'stock': 'All',
@@ -262,10 +261,11 @@ class synthesisreportWizard(models.TransientModel):
 
                         }
                     )
-                else:
+            else:
+                for pro in products:
                     pos_lines = self.env['pos.order.line'].sudo().search([
                         ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
-                        ('product_id', '=', prod.id),
+                        ('product_id', '=', pro.id),
                     ])
                     total_qty_in = 0.0
                     total_qty_out = 0.0
@@ -281,18 +281,18 @@ class synthesisreportWizard(models.TransientModel):
 
                     move_sales_in = self.env['stock.move'].sudo().search([
                         ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('product_id', '=', pro.id),
                         ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
                     ])
                     move_sales_out = self.env['stock.move'].sudo().search([
                         ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('product_id', '=', pro.id),
                         ('sale_line_id', '!=', False), ('picking_code', '=', 'incoming')
                     ])
 
                     move_purchase = self.env['stock.move'].sudo().search([
                         ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('product_id', '=', pro.id),
                         ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
                     ])
 
@@ -324,13 +324,13 @@ class synthesisreportWizard(models.TransientModel):
 
                     data.append(
                         {
-                            'pro_code': prod.barcode,
-                            'season_id': prod.season_id.season,
-                            'year_id': prod.year_id.year,
-                            'country_id': prod.country_id.manufacture,
-                            'pro_name': prod.name,
-                            'pro_cost': prod.standard_price,
-                            'avalible_qty': prod.qty_available,
+                            'pro_code': pro.barcode,
+                            'season_id': pro.season_id.season,
+                            'year_id': pro.year_id.year,
+                            'country_id': pro.country_id.manufacture,
+                            'pro_name': pro.name,
+                            'pro_cost': pro.standard_price,
+                            'avalible_qty': pro.qty_available,
                             'income_qty': income_qty,
                             'income_amt': income_amt,
                             'stock': 'All',

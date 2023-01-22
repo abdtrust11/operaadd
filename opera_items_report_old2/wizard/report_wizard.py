@@ -13,8 +13,8 @@ import pytz
 
 from pytz import timezone
 
-class synthesisreportWizard(models.TransientModel):
-    _name = 'synthesis.report.wizard'
+class ItemsReportWizard(models.TransientModel):
+    _name = 'items.report.wizard'
 
 
 
@@ -31,20 +31,20 @@ class synthesisreportWizard(models.TransientModel):
 
     @api.onchange('template_id')
     def onchange_template_id(self):
-        product_obj = self.env['product.template']
+        product_obj = self.env['product.product']
         domain = ['|', ('active', '=', True), ('active', '=', False)]
         lots = self.env['stock.production.lot']
         products = product_obj.sudo().search(domain)
         if self.template_id:
-            products = self.env['product.template']
+            products = self.env['product.product']
             for rec in self.template_id:
-                products += rec
+                products += rec.product_variant_ids
             lots = self.env['stock.production.lot'].sudo().search([('product_id','in',products.ids)])
         return {'domain': {'product_id': [('id', '=', products.ids)],'lot_ids': [('id', '=', lots.ids)]}}
 
     def get_report_data(self):
         data = []
-        product_obj = self.env['product.template']
+        product_obj = self.env['product.product']
         domain = ['|', ('active', '=', True), ('active', '=', False)]
         if self.categ_ids:
             domain += [('categ_id','in',self.categ_ids.ids)]
@@ -59,12 +59,12 @@ class synthesisreportWizard(models.TransientModel):
             domain += [('country_id', 'in', self.country_ids.ids)]
 
         products = product_obj.sudo().search(domain)
-        # if self.product_id:
-        #     products = self.product_id
+        if self.product_id:
+            products = self.product_id
         if self.template_id:
-            products = self.env['product.template']
+            products = self.env['product.product']
             for rec in self.template_id:
-                products += rec
+                products += rec.product_variant_ids
         stock_ids = self.env['stock.warehouse'].search([])
         if self.stock_ids:
             stock_ids = self.stock_ids
@@ -172,100 +172,101 @@ class synthesisreportWizard(models.TransientModel):
 
 
         if not self.stock_ids:
-            for prod in products:
-                if prod.product_variant_ids:
-                # for rec in self.template_id:
-                    # products += rec.product_variant_ids
-                    total_qty_in = 0.0
-                    total_qty_out = 0.0
-                    total_amt_in = 0.0
-                    total_amt_out = 0.0
-                    income_qty = 0.0
-                    income_amt = 0.0
-                    for pro in prod.product_variant_ids:
+            for pro in products:
+                pos_lines = self.env['pos.order.line'].sudo().search([
+                    ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
+                    ('product_id', '=', pro.id),
+                ])
+                total_qty_in=0.0
+                total_qty_out=0.0
+                total_amt_in=0.0
+                total_amt_out=0.0
+                for line in pos_lines:
+                    if line.price_subtotal >= 0.0:
+                        total_qty_in += line.qty
+                        total_amt_in += line.price_subtotal
+                    else:
+                        total_qty_out += abs(line.qty)
+                        total_amt_out += abs(line.price_subtotal)
 
-                        pos_lines = self.env['pos.order.line'].sudo().search([
-                            ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
-                            ('product_id', '=', pro.id),
-                        ])
+                move_sales_in = self.env['stock.move'].sudo().search([
+                    ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
+                    ('product_id', '=', pro.id),
+                    ('sale_line_id','!=',False),('picking_code','=','outgoing')
+                ])
+                move_sales_out = self.env['stock.move'].sudo().search([
+                    ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
+                    ('product_id', '=', pro.id),
+                    ('sale_line_id','!=',False),('picking_code','=','incoming')
+                ])
 
-                        for line in pos_lines:
-                            if line.price_subtotal >= 0.0:
-                                total_qty_in += line.qty
-                                total_amt_in += line.price_subtotal
-                            else:
-                                total_qty_out += abs(line.qty)
-                                total_amt_out += abs(line.price_subtotal)
-
-                        move_sales_in = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                            ('product_id', '=', pro.id),
-                            ('sale_line_id','!=',False),('picking_code','=','outgoing')
-                        ])
-                        move_sales_out = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                            ('product_id', '=', pro.id),
-                            ('sale_line_id','!=',False),('picking_code','=','incoming')
-                        ])
-
-                        move_purchase = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                            ('product_id', '=', pro.id),
-                            ('purchase_line_id','!=',False),('picking_code','=','incoming')
-                        ])
+                move_purchase = self.env['stock.move'].sudo().search([
+                    ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
+                    ('product_id', '=', pro.id),
+                    ('purchase_line_id','!=',False),('picking_code','=','incoming')
+                ])
 
 
-                        for move in move_sales_in:
-                            price = move.product_uom_qty*move.sale_line_id.price_unit
-                            net_price = price - (price * move.sale_line_id.discount/100.0)
-                            total_qty_in += move.product_uom_qty
-                            total_amt_in += net_price
-                        for move in move_sales_out:
-                            price = move.product_uom_qty*move.sale_line_id.price_unit
-                            net_price = price - (price * move.sale_line_id.discount/100.0)
-                            total_qty_out += move.product_uom_qty
-                            total_amt_out += net_price
+                for move in move_sales_in:
+                    price = move.product_uom_qty*move.sale_line_id.price_unit
+                    net_price = price - (price * move.sale_line_id.discount/100.0)
+                    total_qty_in += move.product_uom_qty
+                    total_amt_in += net_price
+                for move in move_sales_out:
+                    price = move.product_uom_qty*move.sale_line_id.price_unit
+                    net_price = price - (price * move.sale_line_id.discount/100.0)
+                    total_qty_out += move.product_uom_qty
+                    total_amt_out += net_price
+
+                income_qty=0.0
+                income_amt=0.0
+                for move in move_purchase:
+                    income_qty += move.product_uom_qty
+                    income_amt += move.purchase_line_id.price_subtotal
+                if total_qty_in > 0.0:
+                    sales_per =total_qty_out/total_qty_in * 100
+                else:sales_per=0.0
+
+                if income_qty > 0.0:
+                    sales_per2 =total_qty_in/income_qty * 100
+                else:sales_per2=0.0
+
+                data.append(
+                    {
+                        'pro_code': pro.barcode,
+                        'season_id': pro.season_id.season,
+                        'year_id': pro.year_id.year,
+                        'country_id': pro.country_id.manufacture,
+                        'pro_name': pro.name,
+                        'pro_cost':pro.standard_price,
+                        'avalible_qty': pro.qty_available,
+                        'income_qty': income_qty,
+                        'income_amt': income_amt,
+                        'stock': 'All',
+                        'sales_qty': total_qty_in,
+                        'sales_amt': total_amt_in,
+                        'refund_qty': total_qty_out,
+                        'refund_amt': total_amt_out,
+                        'net_qty': total_qty_in - total_qty_out,
+                        'net_amt': total_amt_in - total_amt_out,
+                        'sales_per': round(sales_per,2),
+                        'sales_per2': round(sales_per2,2),
 
 
-                        for move in move_purchase:
-                            income_qty += move.product_uom_qty
-                            income_amt += move.purchase_line_id.price_subtotal
-                        if total_qty_in > 0.0:
-                            sales_per =total_qty_out/total_qty_in * 100
-                        else:sales_per=0.0
+                    }
+                )
 
-                        if income_qty > 0.0:
-                            sales_per2 =total_qty_in/income_qty * 100
-                        else:sales_per2=0.0
+        else:
+            for stock in self.stock_ids:
+                locations = self.env['stock.location'].search(
+                    [('location_id', 'child_of', stock.mapped('view_location_id').ids)])
 
-                    data.append(
-                        {
-                            'pro_code': prod.barcode,
-                            'season_id': prod.season_id.season,
-                            'year_id': prod.year_id.year,
-                            'country_id': prod.country_id.manufacture,
-                            'pro_name': prod.name,
-                            'pro_cost':prod.standard_price,
-                            'avalible_qty': prod.qty_available,
-                            'income_qty': income_qty,
-                            'income_amt': income_amt,
-                            'stock': 'All',
-                            'sales_qty': total_qty_in,
-                            'sales_amt': total_amt_in,
-                            'refund_qty': total_qty_out,
-                            'refund_amt': total_amt_out,
-                            'net_qty': total_qty_in - total_qty_out,
-                            'net_amt': total_amt_in - total_amt_out,
-                            'sales_per': round(sales_per,2),
-                            'sales_per2': round(sales_per2,2),
+                for pro in products:
+                    avalible_qty = pro.with_context(warehouse=stock.id).qty_available
 
-
-                        }
-                    )
-                else:
                     pos_lines = self.env['pos.order.line'].sudo().search([
                         ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
-                        ('product_id', '=', prod.id),
+                        ('product_id', '=', pro.id),
                     ])
                     total_qty_in = 0.0
                     total_qty_out = 0.0
@@ -280,19 +281,19 @@ class synthesisreportWizard(models.TransientModel):
                             total_amt_out += abs(line.price_subtotal)
 
                     move_sales_in = self.env['stock.move'].sudo().search([
-                        ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('picking_type_id.warehouse_id', 'in', stock.ids),
+                        ('product_id', '=', pro.id),
                         ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
                     ])
                     move_sales_out = self.env['stock.move'].sudo().search([
-                        ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('picking_type_id.warehouse_id', 'in', stock.ids),
+                        ('product_id', '=', pro.id),
                         ('sale_line_id', '!=', False), ('picking_code', '=', 'incoming')
                     ])
 
                     move_purchase = self.env['stock.move'].sudo().search([
-                        ('picking_type_id.warehouse_id', 'in', stock_ids.ids),
-                        ('product_id', '=', prod.id),
+                        ('picking_type_id.warehouse_id', 'in', stock.ids),
+                        ('product_id', '=', pro.id),
                         ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
                     ])
 
@@ -324,16 +325,16 @@ class synthesisreportWizard(models.TransientModel):
 
                     data.append(
                         {
-                            'pro_code': prod.barcode,
-                            'season_id': prod.season_id.season,
-                            'year_id': prod.year_id.year,
-                            'country_id': prod.country_id.manufacture,
-                            'pro_name': prod.name,
-                            'pro_cost': prod.standard_price,
-                            'avalible_qty': prod.qty_available,
+                            'pro_code': pro.barcode,
+                            'season_id': pro.season_id.season,
+                            'year_id': pro.year_id.year,
+                            'country_id': pro.country_id.manufacture,
+                            'pro_name': pro.name,
+                            'pro_cost':pro.standard_price,
+                            'avalible_qty': avalible_qty,
                             'income_qty': income_qty,
+                            'stock': stock.name,
                             'income_amt': income_amt,
-                            'stock': 'All',
                             'sales_qty': total_qty_in,
                             'sales_amt': total_amt_in,
                             'refund_qty': total_qty_out,
@@ -346,189 +347,6 @@ class synthesisreportWizard(models.TransientModel):
                         }
                     )
 
-        else:
-            for stock in self.stock_ids:
-                locations = self.env['stock.location'].search(
-                    [('location_id', 'child_of', stock.mapped('view_location_id').ids)])
-                for item in products:
-
-                    if item.product_variant_ids:
-                        total_qty_in = 0.0
-                        total_qty_out = 0.0
-                        total_amt_in = 0.0
-                        total_amt_out = 0.0
-
-                        income_qty = 0.0
-                        income_amt = 0.0
-                        avalible_qty = 0.0
-                        for pro in item.product_variant_ids:
-                            avalible_qty += pro.with_context(warehouse=stock.id).qty_available
-
-                            pos_lines = self.env['pos.order.line'].sudo().search([
-                                ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
-                                ('product_id', '=', pro.id),
-                            ])
-                            # total_qty_in = 0.0
-                            # total_qty_out = 0.0
-                            # total_amt_in = 0.0
-                            # total_amt_out = 0.0
-                            for line in pos_lines:
-                                if line.price_subtotal >= 0.0:
-                                    total_qty_in += line.qty
-                                    total_amt_in += line.price_subtotal
-                                else:
-                                    total_qty_out += abs(line.qty)
-                                    total_amt_out += abs(line.price_subtotal)
-
-                            move_sales_in = self.env['stock.move'].sudo().search([
-                                ('picking_type_id.warehouse_id', 'in', stock.ids),
-                                ('product_id', '=', pro.id),
-                                ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
-                            ])
-                            move_sales_out = self.env['stock.move'].sudo().search([
-                                ('picking_type_id.warehouse_id', 'in', stock.ids),
-                                ('product_id', '=', pro.id),
-                                ('sale_line_id', '!=', False), ('picking_code', '=', 'incoming')
-                            ])
-
-                            move_purchase = self.env['stock.move'].sudo().search([
-                                ('picking_type_id.warehouse_id', 'in', stock.ids),
-                                ('product_id', '=', pro.id),
-                                ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
-                            ])
-
-                            for move in move_sales_in:
-                                price = move.product_uom_qty * move.sale_line_id.price_unit
-                                net_price = price - (price * move.sale_line_id.discount / 100.0)
-                                total_qty_in += move.product_uom_qty
-                                total_amt_in += net_price
-                            for move in move_sales_out:
-                                price = move.product_uom_qty * move.sale_line_id.price_unit
-                                net_price = price - (price * move.sale_line_id.discount / 100.0)
-                                total_qty_out += move.product_uom_qty
-                                total_amt_out += net_price
-
-
-                            for move in move_purchase:
-                                income_qty += move.product_uom_qty
-                                income_amt += move.purchase_line_id.price_subtotal
-                            if total_qty_in > 0.0:
-                                sales_per = total_qty_out / total_qty_in * 100
-                            else:
-                                sales_per = 0.0
-
-                            if income_qty > 0.0:
-                                sales_per2 = total_qty_in / income_qty * 100
-                            else:
-                                sales_per2 = 0.0
-
-                        data.append(
-                            {
-                                'pro_code': item.barcode,
-                                'season_id': item.season_id.season,
-                                'year_id': item.year_id.year,
-                                'country_id': item.country_id.manufacture,
-                                'pro_name': item.name,
-                                'pro_cost':item.standard_price,
-                                'avalible_qty': avalible_qty,
-                                'income_qty': income_qty,
-                                'stock': stock.name,
-                                'income_amt': income_amt,
-                                'sales_qty': total_qty_in,
-                                'sales_amt': total_amt_in,
-                                'refund_qty': total_qty_out,
-                                'refund_amt': total_amt_out,
-                                'net_qty': total_qty_in - total_qty_out,
-                                'net_amt': total_amt_in - total_amt_out,
-                                'sales_per': round(sales_per, 2),
-                                'sales_per2': round(sales_per2, 2),
-
-                            }
-                        )
-                    else:
-
-                        avalible_qty = item.with_context(warehouse=stock.id).qty_available
-
-                        pos_lines = self.env['pos.order.line'].sudo().search([
-                            ('order_id.picking_type_id.default_location_src_id', 'in', locations.ids),
-                            ('product_id', '=', item.id),
-                        ])
-                        total_qty_in = 0.0
-                        total_qty_out = 0.0
-                        total_amt_in = 0.0
-                        total_amt_out = 0.0
-                        for line in pos_lines:
-                            if line.price_subtotal >= 0.0:
-                                total_qty_in += line.qty
-                                total_amt_in += line.price_subtotal
-                            else:
-                                total_qty_out += abs(line.qty)
-                                total_amt_out += abs(line.price_subtotal)
-
-                        move_sales_in = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock.ids),
-                            ('product_id', '=', item.id),
-                            ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
-                        ])
-                        move_sales_out = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock.ids),
-                            ('product_id', '=', item.id),
-                            ('sale_line_id', '!=', False), ('picking_code', '=', 'incoming')
-                        ])
-
-                        move_purchase = self.env['stock.move'].sudo().search([
-                            ('picking_type_id.warehouse_id', 'in', stock.ids),
-                            ('product_id', '=', item.id),
-                            ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
-                        ])
-
-                        for move in move_sales_in:
-                            price = move.product_uom_qty * move.sale_line_id.price_unit
-                            net_price = price - (price * move.sale_line_id.discount / 100.0)
-                            total_qty_in += move.product_uom_qty
-                            total_amt_in += net_price
-                        for move in move_sales_out:
-                            price = move.product_uom_qty * move.sale_line_id.price_unit
-                            net_price = price - (price * move.sale_line_id.discount / 100.0)
-                            total_qty_out += move.product_uom_qty
-                            total_amt_out += net_price
-                        income_qty = 0.0
-                        income_amt = 0.0
-                        for move in move_purchase:
-                            income_qty += move.product_uom_qty
-                            income_amt += move.purchase_line_id.price_subtotal
-                        if total_qty_in > 0.0:
-                            sales_per = total_qty_out / total_qty_in * 100
-                        else:
-                            sales_per = 0.0
-
-                        if income_qty > 0.0:
-                            sales_per2 = total_qty_in / income_qty * 100
-                        else:
-                            sales_per2 = 0.0
-                        data.append(
-                            {
-                                'pro_code': item.barcode,
-                                'season_id': item.season_id.season,
-                                'year_id': item.year_id.year,
-                                'country_id': item.country_id.manufacture,
-                                'pro_name': item.name,
-                                'pro_cost': item.standard_price,
-                                'avalible_qty': avalible_qty,
-                                'income_qty': income_qty,
-                                'stock': stock.name,
-                                'income_amt': income_amt,
-                                'sales_qty': total_qty_in,
-                                'sales_amt': total_amt_in,
-                                'refund_qty': total_qty_out,
-                                'refund_amt': total_amt_out,
-                                'net_qty': total_qty_in - total_qty_out,
-                                'net_amt': total_amt_in - total_amt_out,
-                                'sales_per': round(sales_per, 2),
-                                'sales_per2': round(sales_per2, 2),
-
-                            }
-                        )
 
 
         return data
@@ -742,7 +560,7 @@ class synthesisreportWizard(models.TransientModel):
         if data_lines:
             output = BytesIO()
             workbook.save(output)
-            self.excel_sheet_name = 'Synthesis Items Report'
+            self.excel_sheet_name = 'Items Report'
 
             self.excel_sheet = base64.b64encode(output.getvalue())
             self.excel_sheet_name = str(self.excel_sheet_name) + '.xls'
@@ -750,15 +568,15 @@ class synthesisreportWizard(models.TransientModel):
             return {
                 'type': 'ir.actions.act_url',
                 'name': 'POS Target Report',
-                'url': '/web/content/synthesis.report.wizard/%s/excel_sheet/Items Report.xls?download=true' % (
+                'url': '/web/content/items.report.wizard/%s/excel_sheet/Items Report.xls?download=true' % (
                     self.id),
                 'target': 'self'
             }
         else:
             view_action = {
-                'name': _('Stock Report Synthesis'),
+                'name': _('Items Report'),
                 'view_mode': 'form',
-                'res_model': 'synthesis.report.wizard',
+                'res_model': 'items.report.wizard',
                 'type': 'ir.actions.act_window',
                 'res_id': self.id,
                 'target': 'new',
