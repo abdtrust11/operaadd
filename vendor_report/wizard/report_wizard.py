@@ -22,13 +22,29 @@ class VendortReportWizard(models.TransientModel):
     vendor_id = fields.Many2one("res.partner", string="Vendor")
     type = fields.Selection([('per_product', 'Product'),
 									('per_vendor', 'Vendor'),
-                                  ('per_product_verient', 'Product Verient'),
-                                  ('per_location', 'Location'),
 									], string='view type', required=True,
 									default='per_vendor')
     excel_sheet = fields.Binary('Download Report')
     excel_sheet_name = fields.Char(string='Name', size=64)
 
+
+    # PDF report
+    def print_report(self):
+        data = {
+            'ids': self.ids,
+            'model': self._name,
+            'from': {
+                'product_id': self.product_id.mapped("id"),
+                'vendor_id': self.vendor_id.mapped("id"),
+
+                'type': self.type,
+            },
+        }
+
+        return self.env.ref('vendor_report.vendor_report').report_action(self, data=data)
+
+
+    # Excel Report
     @api.onchange('product_id')
     def onchange_template_id(self):
         product_obj = self.env['product.product']
@@ -153,33 +169,68 @@ class VendortReportWizard(models.TransientModel):
                         'sales_per': round(sales_per, 2),
                     })
         elif self.vendor_id and not self.product_id:
-            total_qty_in = 0.00
-            total_sale_qty = 0.00
-            move_purchase = self.env['stock.move'].sudo().search([
-                ('picking_code', '=', 'incoming'),
-                ('state', '=', 'done'),
-                ('purchase_line_id.partner_id', '=', self.vendor_id.id)
-            ])
+            if self.type == 'per_vendor':
+                total_qty_in = 0.00
+                total_sale_qty = 0.00
+                move_purchase = self.env['stock.move'].sudo().search([
+                    ('picking_code', '=', 'incoming'),
+                    ('state', '=', 'done'),
+                    ('purchase_line_id.partner_id', '=', self.vendor_id.id)
+                ])
 
-            move_sales_in = self.env['stock.move'].sudo().search([
-                ('sale_line_id', '!=', False),('state','=','done'), ('picking_code', '=', 'outgoing')
-            ])
+                move_sales_in = self.env['stock.move'].sudo().search([
+                    ('sale_line_id', '!=', False),('state','=','done'), ('picking_code', '=', 'outgoing')
+                ])
 
-            for move in move_purchase:
-                total_qty_in += move.product_uom_qty
+                for move in move_purchase:
+                    total_qty_in += move.product_uom_qty
 
-            for sale in move_sales_in:
-                total_sale_qty += sale.product_uom_qty
+                for sale in move_sales_in:
+                    total_sale_qty += sale.product_uom_qty
 
-            data.append(
-                {
-                    'vendor': self.vendor_id.name,
-                    'product':False,
-                    'avalible_qty': False,
-                    'qty': total_qty_in,
-                    'sale_qty':False,
-                    'sales_per':False,
-                })
+                data.append(
+                    {
+                        'vendor': self.vendor_id.name,
+                        'product':False,
+                        'avalible_qty': False,
+                        'qty': total_qty_in,
+                        'sale_qty':False,
+                        'sales_per':False,
+                    })
+            else:
+
+                move_purchase = self.env['stock.move'].sudo().search([
+                    ('picking_code', '=', 'incoming'),
+                    ('state', '=', 'done'),
+                    ('purchase_line_id.partner_id', '=', self.vendor_id.id)
+                ])
+
+                move_sales_in = self.env['stock.move'].sudo().search([
+                    ('sale_line_id', '!=', False), ('state', '=', 'done'), ('picking_code', '=', 'outgoing')
+                ])
+                product_map = move_purchase.mapped('product_id')
+                for pro in product_map:
+                    total_qty_in = 0.00
+                    total_sale_qty = 0.00
+                    avalible_qty = 0.00
+                    for move in move_purchase:
+                        if pro.id == move.product_id.id:
+                            total_qty_in += move.product_uom_qty
+                            avalible_qty +=move.product_id.qty_available
+                    data.append(
+                        {
+                            'vendor': self.vendor_id.name,
+                            'product': pro.name,
+                            'avalible_qty': avalible_qty,
+                            'qty': total_qty_in,
+                            'sale_qty': False,
+                            'sales_per': False,
+                        })
+
+                # for sale in move_sales_in:
+                #     total_sale_qty += sale.product_uom_qty
+
+
 
         return data
 

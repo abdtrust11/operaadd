@@ -17,6 +17,7 @@
     'data': [
         'security/ir.model.access.csv',
         'wizard/report_wizard.xml',
+        'report/vendor_template.xml',
     ],
 
 

@@ -1,0 +1,63 @@
+<odoo>
+
+    <report id="vendor_report"
+            model="vendor.report.wizard"
+            string="Report Vendor"
+            report_type="qweb-html"
+            name="vendor_report.vendor_report_view"
+            menu="False"/>
+
+    <template id="vendor_report_view">
+        <t t-call="web.html_container">
+        <t t-call="web.external_layout">
+            <div class="page">
+                <div class="text-center" style="font:500;">
+                        <strong>تقرير الموردين \ المنتجات
+                        </strong>
+                </div><br/>
+                <br/>
+                <table style="margin:10px;width:100%;" dir="rtl" class="table-bordered">
+                      <thead style="display: table-header-group;">
+                            <th class="text-center fit">#</th>
+                            <th class="text-center fit">المورد</th>
+                            <th class="text-center fit">المنتج</th>
+                            <th class="text-center fit">الكمية المتوفرة</th>
+                            <th class="text-center fit">الكمية المشتراه</th>
+                            <th class="text-center fit">الكمية المباعة</th>
+                            <th class="text-center fit">معدل البيع من الوارد</th>
+                        </thead>
+                            <t t-set="count" t-value="1"/>
+                            <t t-foreach="docs" t-as="doc">
+                                <tr style="page-break-inside: avoid;">
+                                    <td class="text-center" heidht="5">
+                                        <span t-esc="count"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['vendor']"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['product']"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['avalible_qty']"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['qty']"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['sale_qty']"/>
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="doc['sales_per']"/>
+                                    </td>
+                                </tr>
+                                <t t-set="count" t-value="count+1"/>
+                            </t>
+                    </table>
+                    <br/><br/><br/>
+
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
