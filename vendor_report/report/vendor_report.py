@@ -167,14 +167,22 @@ class ReportVendor(models.AbstractModel):
                         if pro.id == move.product_id.id:
                             total_qty_in += move.product_uom_qty
                             avalible_qty += move.product_id.qty_available
+                            for sale in move_sales_in:
+                                if pro.id == sale.product_id.id:
+                                    total_sale_qty += sale.product_uom_qty
+
+                    if total_qty_in > 0.0:
+                        sales_per = total_sale_qty / total_qty_in * 100
+                    else:
+                        sales_per = 0.0
                     docs.append(
                         {
                             'vendor': vendor_obj.name,
                             'product': pro.name,
                             'avalible_qty': avalible_qty,
                             'qty': total_qty_in,
-                            'sale_qty': False,
-                            'sales_per': False,
+                            'sale_qty': total_sale_qty,
+                            'sales_per': round(sales_per, 2),
                         })
         return {
             'doc_ids': data['ids'],

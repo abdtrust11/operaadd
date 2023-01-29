@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b4498028-7b20-45b0-a77b-0c8d85d0ece3" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/__manifest__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/models/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/models/generate_product_ean13.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/models/product.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/models/res_config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/security/ir.model.access.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/Banner.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/barcode_config.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/barcode_manually_1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/bi_logo.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/by_random.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/date_wise_barcode.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/generated_all_barcode.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/manual_barcode_wizard.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/manual_genrated_barcode.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/select_all_generate_barcode.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/select_all_wizard.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/settings.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/static/description/settings_by_random.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/views/generate_product_ean13_view.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bi_generate_product_ean13/views/res_config_view.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../opera_items_report/wizard/synthesis_report.py" beforeDir="false" afterPath="$PROJECT_DIR$/../opera_items_report/wizard/synthesis_report.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../product_barcode_printout/models/product_product.py" beforeDir="false" afterPath="$PROJECT_DIR$/../product_barcode_printout/models/product_product.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="2KogRgObsfeprfIu5JouZsseFdU" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b4498028-7b20-45b0-a77b-0c8d85d0ece3" name="Changes" comment="" />
+      <created>1674646343125</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1674646343125</updated>
+    </task>
+    <servers />
+  </component>
+</project>
