@@ -18,7 +18,7 @@ class VendortReportWizard(models.TransientModel):
 
 
 
-    product_id = fields.Many2many(comodel_name="product.product", string="Product")
+    product_id = fields.Many2many(comodel_name="product.template", string="Product")
     vendor_id = fields.Many2one("res.partner", string="Vendor")
     type = fields.Selection([('per_product', 'Product'),
 									('per_vendor', 'Vendor'),
@@ -45,69 +45,85 @@ class VendortReportWizard(models.TransientModel):
 
 
     # Excel Report
-    @api.onchange('product_id')
-    def onchange_template_id(self):
-        product_obj = self.env['product.product']
-        domain = ['|', ('active', '=', True), ('active', '=', False)]
-        products = product_obj.sudo().search(domain)
-        if self.product_id:
-            products = self.env['product.product']
-            for rec in self.product_id:
-                products += rec
-        return {'domain': {'product_id': [('id', 'in', products.ids)]}}
 
     def get_report_data(self):
         data = []
-        product_obj = self.env['product.product']
-        domain = ['|', ('active', '=', True), ('active', '=', False)]
-
-        # if self.vendor_id:
-        #     domain += [('purchase_line_id.partner_id.id', '=', self.vendor_id.id)]
-
-        products = product_obj.sudo().search(domain)
-        if self.product_id:
-            products = self.env['product.product']
-            for rec in self.product_id:
-                products += rec
         if not self.vendor_id:
             if self.product_id:
-                for pro in products:
-                    total_qty_in = 0.0
-                    total_sale_qty = 0.0
-                    print('11111111111111',pro.id)
-                    move_purchase = self.env['stock.move'].sudo().search([
-                        ('product_id', '=', pro.id),
-                        ('state','=','done'),
-                        ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
-                    ])
+                for pro in self.product_id:
+                    if pro.product_variant_ids:
+                        total_qty_in = 0.0
+                        total_sale_qty = 0.0
+                        for var in pro.product_variant_ids:
+                            move_purchase = self.env['stock.move'].sudo().search([
+                                ('product_id', '=', var.id),
+                                ('state','=','done'),
+                                ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
+                            ])
 
-                    move_sales_in = self.env['stock.move'].sudo().search([
-                        ('product_id', '=', pro.id),
-                        ('state', '=', 'done'),
-                        ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
-                    ])
-                    avalible_qty = pro.qty_available
+                            move_sales_in = self.env['stock.move'].sudo().search([
+                                ('product_id', '=', var.id),
+                                ('state', '=', 'done'),
+                                ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
+                            ])
+                            # avalible_qty = pro.qty_available
 
-                    for move in move_purchase:
-                        total_qty_in += move.product_uom_qty
+                            for move in move_purchase:
+                                total_qty_in += move.product_uom_qty
 
-                    for sale in move_sales_in:
-                        total_sale_qty += sale.product_uom_qty
-                    if total_qty_in > 0.0:
-                        sales_per = total_sale_qty / total_qty_in * 100
+                            for sale in move_sales_in:
+                                total_sale_qty += sale.product_uom_qty
+                        if total_qty_in > 0.0:
+                            sales_per = total_sale_qty / total_qty_in * 100
+                        else:
+                            sales_per = 0.0
+
+                        data.append(
+                            {
+                                'vendor':False,
+                                'product':pro.name,
+                                'avalible_qty':pro.qty_available,
+                                'qty':total_qty_in,
+                                'sale_qty':total_sale_qty,
+                                'sales_per': round(sales_per, 2),
+                            })
                     else:
-                        sales_per = 0.0
-                    print('$$$$$$',move_purchase)
-                    print('$$$$$$',total_qty_in)
-                    data.append(
-                        {
-                            'vendor':False,
-                            'product':pro.name,
-                            'avalible_qty':avalible_qty,
-                            'qty':total_qty_in,
-                            'sale_qty':total_sale_qty,
-                            'sales_per': round(sales_per, 2),
-                        })
+                        total_qty_in = 0.0
+                        total_sale_qty = 0.0
+
+                        move_purchase = self.env['stock.move'].sudo().search([
+                            ('product_id', '=', pro.product_variant_id.id),
+                            ('state', '=', 'done'),
+                            ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming')
+                        ])
+
+                        move_sales_in = self.env['stock.move'].sudo().search([
+                            ('product_id', '=', pro.product_variant_id.id),
+                            ('state', '=', 'done'),
+                            ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
+                        ])
+
+                        avalible_qty = pro.qty_available
+                        for move in move_purchase:
+                            total_qty_in += move.product_uom_qty
+
+                        for sale in move_sales_in:
+                            total_sale_qty += sale.product_uom_qty
+
+                        if total_qty_in > 0.0:
+                            sales_per = total_sale_qty / total_qty_in * 100
+                        else:
+                            sales_per = 0.0
+
+                        data.append(
+                            {
+                                'vendor': False,
+                                'product': pro.name,
+                                'avalible_qty': avalible_qty,
+                                'qty': total_qty_in,
+                                'sale_qty': total_sale_qty,
+                                'sales_per': round(sales_per, 2),
+                            })
             else:
                 total_qty_in = 0.00
                 total_sale_qty = 0.00
@@ -130,44 +146,79 @@ class VendortReportWizard(models.TransientModel):
                             'sale_qty': False,
                             'sales_per':False
                         })
-                print('1111111111111')
-                print('vendor_id',vendor_id)
+
 
         elif self.vendor_id and self.product_id:
-            for pro in products:
-                total_qty_in = 0.0
-                total_sale_qty = 0.00
-                move_purchase = self.env['stock.move'].sudo().search([
-                    ('product_id', '=', pro.id),
-                    ('state', '=', 'done'),
-                    ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming'),
-                    ('purchase_line_id.partner_id.id', '=', self.vendor_id.id)
-                ])
+            for pro in self.product_id:
+                if pro.product_variant_ids:
+                    total_qty_in = 0.0
+                    total_sale_qty = 0.0
+                    for var in pro.product_variant_ids:
+                        move_purchase = self.env['stock.move'].sudo().search([
+                            ('product_id', '=', var.id),
+                            ('state', '=', 'done'),
+                            ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming'),
+                            ('purchase_line_id.partner_id.id', '=', self.vendor_id.id)
+                        ])
 
-                move_sales_in = self.env['stock.move'].sudo().search([
-                    ('product_id', '=', pro.id),
-                    ('state', '=', 'done'),
-                    ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
-                ])
-                for move in move_purchase:
-                    total_qty_in += move.product_uom_qty
+                        move_sales_in = self.env['stock.move'].sudo().search([
+                            ('product_id', '=', var.id),
+                            ('state', '=', 'done'),
+                            ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
+                        ])
+                        for move in move_purchase:
+                            total_qty_in += move.product_uom_qty
 
-                for sale in move_sales_in:
-                    total_sale_qty += sale.product_uom_qty
-                if total_qty_in > 0.0:
-                    sales_per = total_sale_qty / total_qty_in * 100
+                        for sale in move_sales_in:
+                            total_sale_qty += sale.product_uom_qty
+                    if total_qty_in > 0.0:
+                        sales_per = total_sale_qty / total_qty_in * 100
+                    else:
+                        sales_per = 0.0
+                    # avalible_qty = pro.qty_available
+                    data.append(
+                        {
+                            'vendor': self.vendor_id.name,
+                            'product': pro.name,
+                            'avalible_qty': pro.qty_available,
+                            'qty': total_qty_in,
+                            'sale_qty': total_sale_qty,
+                            'sales_per': round(sales_per, 2),
+                        })
                 else:
-                    sales_per = 0.0
-                avalible_qty = pro.qty_available
-                data.append(
-                    {
-                        'vendor':self.vendor_id.name,
-                        'product':pro.name,
-                        'avalible_qty':avalible_qty,
-                        'qty':total_qty_in,
-                        'sale_qty':total_sale_qty,
-                        'sales_per': round(sales_per, 2),
-                    })
+                    total_qty_in = 0.0
+                    total_sale_qty = 0.0
+                    move_purchase = self.env['stock.move'].sudo().search([
+                        ('product_id', '=', pro.id),
+                        ('state', '=', 'done'),
+                        ('purchase_line_id', '!=', False), ('picking_code', '=', 'incoming'),
+                        ('purchase_line_id.partner_id.id', '=', self.vendor_id.id)
+                    ])
+
+                    move_sales_in = self.env['stock.move'].sudo().search([
+                        ('product_id', '=', pro.id),
+                        ('state', '=', 'done'),
+                        ('sale_line_id', '!=', False), ('picking_code', '=', 'outgoing')
+                    ])
+                    for move in move_purchase:
+                        total_qty_in += move.product_uom_qty
+
+                    for sale in move_sales_in:
+                        total_sale_qty += sale.product_uom_qty
+                    if total_qty_in > 0.0:
+                        sales_per = total_sale_qty / total_qty_in * 100
+                    else:
+                        sales_per = 0.0
+                    avalible_qty = pro.qty_available
+                    data.append(
+                        {
+                            'vendor': self.vendor_id.name,
+                            'product': pro.name,
+                            'avalible_qty': avalible_qty,
+                            'qty': total_qty_in,
+                            'sale_qty': total_sale_qty,
+                            'sales_per': round(sales_per, 2),
+                        })
         elif self.vendor_id and not self.product_id:
             if self.type == 'per_vendor':
                 total_qty_in = 0.00
@@ -216,19 +267,25 @@ class VendortReportWizard(models.TransientModel):
                     for move in move_purchase:
                         if pro.id == move.product_id.id:
                             total_qty_in += move.product_uom_qty
-                            avalible_qty +=move.product_id.qty_available
+                            avalible_qty += move.product_id.qty_available
+                            for sale in move_sales_in:
+                                if pro.id == sale.product_id.id:
+                                    total_sale_qty += sale.product_uom_qty
+
+                    if total_qty_in > 0.0:
+                        sales_per = total_sale_qty / total_qty_in * 100
+                    else:
+                        sales_per = 0.0
                     data.append(
                         {
                             'vendor': self.vendor_id.name,
                             'product': pro.name,
                             'avalible_qty': avalible_qty,
                             'qty': total_qty_in,
-                            'sale_qty': False,
-                            'sales_per': False,
+                            'sale_qty': total_sale_qty,
+                            'sales_per': round(sales_per, 2),
                         })
 
-                # for sale in move_sales_in:
-                #     total_sale_qty += sale.product_uom_qty
 
 
 
