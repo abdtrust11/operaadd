@@ -91,6 +91,7 @@ We also provide option to generate barcode easily for multiple product in single
     'depends': ['base', 'product', 'sale', 'barcodes'],
     'data': [
         'security/ir.model.access.csv',
+        'data/seq.xml',
         'views/generate_product_ean13_view.xml',
         'views/res_config_view.xml'
     ],

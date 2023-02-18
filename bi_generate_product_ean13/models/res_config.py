@@ -8,7 +8,8 @@ class SaleConfigSettings(models.TransientModel):
 
     gen_barcode = fields.Boolean("Geneación de código EAN13 en el Producto")
     generate_option = fields.Selection([('date', 'Generar código de barras EAN13 (Usando la fecha actual)'),
-                                        ('random', 'Generar código de barras EAN13 (Usando un número randómico)')],string='Opciones de generar código de barras',default='date')
+                                        ('random', 'Generar código de barras EAN13 (Usando un número randómico)'),
+                                        ('default','Default')],string='Opciones de generar código de barras',default='date')
 
     @api.model
     def default_get(self, fields_list):

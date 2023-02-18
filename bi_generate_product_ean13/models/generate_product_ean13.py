@@ -32,6 +32,7 @@ class biproductgeneratebarcodemanually(models.TransientModel):
                 "random",
                 "Generación de código de barras EAN13 (Usando´numeros randómicos)",
             ),
+            ('default', 'Default'),
         ],
         string="Opciones de generar código de barras",
         default="date",
@@ -46,6 +47,10 @@ class biproductgeneratebarcodemanually(models.TransientModel):
                 bcode = self.env["barcode.nomenclature"].sanitize_ean(
                     "%s%s" % (record.id, datetime.now().strftime("%d%m%y%H%M"))
                 )
+            elif self.generate_type == "default":
+                bcode = str(record.product_tmpl_id.year_id.code) + str(record.product_tmpl_id.barcode_new) + '-' + self.env[
+                    'ir.sequence'].get('product.code')
+
             else:
                 number_random = int("%0.13d" % random.randint(0, 999999999999))
                 bcode = self.env["barcode.nomenclature"].sanitize_ean(
@@ -54,7 +59,7 @@ class biproductgeneratebarcodemanually(models.TransientModel):
             record.write({"barcode": bcode})
             if ImageWriter is not None:
                 ean = BytesIO()
-                generate("ean13", u"{}".format(bcode), writer=ImageWriter(), output=ean)
+                # generate("ean13", u"{}".format(bcode), writer=ImageWriter(), output=ean)
                 ean.seek(0)
                 jpgdata = ean.read()
                 imgdata = base64.encodebytes(jpgdata)
@@ -73,6 +78,7 @@ class bi_generate_product_barcode(models.TransientModel):
                 "random",
                 "Generación de código de barras EAN13 (Usando´numeros randómicos)",
             ),
+            ('default', 'Default'),
         ],
         string="Opciones de generación de código de barras",
         default="date",
@@ -91,13 +97,20 @@ class bi_generate_product_barcode(models.TransientModel):
                 bcode = self.env["barcode.nomenclature"].sanitize_ean(
                     "%s%s" % (record.id, datetime.now().strftime("%d%m%y%H%M"))
                 )
+            elif self.generate_type == "default":
+                # new_bar = str(record.year_id) + self.env['ir.sequence'].get('product.number') + '-' + self.env[
+                #     'ir.sequence'].get('product.code')
+
+                bcode = str(record.product_tmpl_id.year_id.code) + str(record.product_tmpl_id.barcode_new) + '-' + self.env[
+                    'ir.sequence'].get('product.code')
+
             else:
                 number_random = int("%0.13d" % random.randint(0, 999999999999))
                 bcode = self.env["barcode.nomenclature"].sanitize_ean(
                     "%s" % (number_random)
                 )
             ean = BytesIO()
-            generate("ean13", u"{}".format(bcode), writer=ImageWriter(), output=ean)
+            # generate("ean13", u"{}".format(bcode), writer=ImageWriter(), output=ean)
             ean.seek(0)
             jpgdata = ean.read()
             imgdata = base64.encodebytes(jpgdata)
